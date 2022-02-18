@@ -22,20 +22,20 @@ SimpleCompressorAudioProcessor::SimpleCompressorAudioProcessor()
                        )
 #endif
 {
-    attack = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Attack"));
-    jassert(attack != nullptr);
+    compressor.attack = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Attack"));
+    jassert(compressor.attack != nullptr);
     
-    release = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Release"));
-    jassert(release != nullptr);
+    compressor.release = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Release"));
+    jassert(compressor.release != nullptr);
     
-    threshold = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Threshold"));
-    jassert(threshold != nullptr);
+    compressor.threshold = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Threshold"));
+    jassert(compressor.threshold != nullptr);
     
-    ratio = dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter("Ratio"));
-    jassert(ratio != nullptr);
+    compressor.ratio = dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter("Ratio"));
+    jassert(compressor.ratio != nullptr);
     
-    bypassed = dynamic_cast<juce::AudioParameterBool*>(apvts.getParameter("Bypassed"));
-    jassert(bypassed != nullptr);
+    compressor.bypassed = dynamic_cast<juce::AudioParameterBool*>(apvts.getParameter("Bypassed"));
+    jassert(compressor.bypassed != nullptr);
 }
 
 SimpleCompressorAudioProcessor::~SimpleCompressorAudioProcessor()
@@ -175,17 +175,8 @@ void SimpleCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
         auto* channelData = buffer.getWritePointer (channel);
     }
     
-    compressor.setAttack(attack->get());
-    compressor.setRelease(release->get());
-    compressor.setThreshold(threshold->get());
-    compressor.setRatio(ratio->getCurrentChoiceName().getFloatValue());
-    
-    auto block = juce::dsp::AudioBlock<float>(buffer);
-    auto context = juce::dsp::ProcessContextReplacing<float>(block);
-
-    context.isBypassed = bypassed->get();
-    
-    compressor.process(context);
+    compressor.updateCompressorSettings();
+    compressor.process(buffer);
 }
 
 //==============================================================================
