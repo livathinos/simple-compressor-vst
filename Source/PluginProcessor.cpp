@@ -51,10 +51,17 @@ SimpleCompressorAudioProcessor::SimpleCompressorAudioProcessor()
     
     boolHelper(compressor.bypassed, Names::Bypassed_Low_Band);
     
-    floatHelper(lowCrossover, Names::Low_Mid_Crossover_Freq);
+    floatHelper(lowMidCrossover, Names::Low_Mid_Crossover_Freq);
+    floatHelper(midHighCrossover, Names::Mid_High_Crossover_Freq);
     
-    LP.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
-    HP.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
+    LP1.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
+    HP1.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
+    
+    AP2.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
+    
+    LP2.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
+    HP2.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
+    
 }
 
 SimpleCompressorAudioProcessor::~SimpleCompressorAudioProcessor()
@@ -135,8 +142,13 @@ void SimpleCompressorAudioProcessor::prepareToPlay (double sampleRate, int sampl
     
     compressor.prepare(spec);
     
-    LP.prepare(spec);
-    HP.prepare(spec);
+    LP1.prepare(spec);
+    HP1.prepare(spec);
+    
+    AP2.prepare(spec);
+    
+    LP2.prepare(spec);
+    HP2.prepare(spec);
     
     for (auto& buffer : filterBuffers)
     {
@@ -190,38 +202,43 @@ void SimpleCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
     // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
-    }
     
     for (auto& filterBuffer : filterBuffers)
     {
         filterBuffer = buffer;
     }
     
-    auto cutoff = lowCrossover->get();
-    LP.setCutoffFrequency(cutoff);
-    HP.setCutoffFrequency(cutoff);
+    auto lowMidCutoffFreq = lowMidCrossover->get();
+    LP1.setCutoffFrequency(lowMidCutoffFreq);
+    HP1.setCutoffFrequency(lowMidCutoffFreq);
+    
+    auto midHighCutoffFreq = midHighCrossover->get();
+    AP2.setCutoffFrequency(midHighCutoffFreq);
+    LP2.setCutoffFrequency(midHighCutoffFreq);
+    HP2.setCutoffFrequency(midHighCutoffFreq);
     
     auto filterBufferBlockZero = juce::dsp::AudioBlock<float>(filterBuffers[0]);
     auto filterBufferBlockOne = juce::dsp::AudioBlock<float>(filterBuffers[1]);
+    auto filterBufferBlockTwo = juce::dsp::AudioBlock<float>(filterBuffers[2]);
     
     auto filterBufferContextZero = juce::dsp::ProcessContextReplacing<float>(filterBufferBlockZero);
     auto filterBufferContextOne = juce::dsp::ProcessContextReplacing<float>(filterBufferBlockOne);
+    auto filterBufferContextTwo = juce::dsp::ProcessContextReplacing<float>(filterBufferBlockTwo);
     
-    LP.process(filterBufferContextZero);
-    HP.process(filterBufferContextOne);
+    LP1.process(filterBufferContextZero);
+    AP2.process(filterBufferContextZero);
+    
+    HP1.process(filterBufferContextOne);
+    filterBuffers[2] = filterBuffers[1];
+    LP2.process(filterBufferContextOne);
+    
+    HP2.process(filterBufferContextTwo);
     
     auto numSamples = buffer.getNumSamples();
     auto numChannels = buffer.getNumChannels();
+    
+    if (compressor.bypassed->get())
+        return;
     
     buffer.clear();
     
@@ -235,6 +252,7 @@ void SimpleCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
     
     addFilterBand(buffer, filterBuffers[0]);
     addFilterBand(buffer, filterBuffers[1]);
+    addFilterBand(buffer, filterBuffers[2]);
 }
 
 //==============================================================================
@@ -311,11 +329,19 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleCompressorAudioProcess
       std::make_unique<AudioParameterFloat>(
         params.at(Names::Low_Mid_Crossover_Freq),
         params.at(Names::Low_Mid_Crossover_Freq),
-        NormalisableRange<float>(20, 20000, 1, 1),
-        500
+        NormalisableRange<float>(20, 999, 1, 1),
+        400
       )
     );
   
+    layout.add(
+      std::make_unique<AudioParameterFloat>(
+        params.at(Names::Mid_High_Crossover_Freq),
+        params.at(Names::Mid_High_Crossover_Freq),
+        NormalisableRange<float>(1000, 20000, 1, 1),
+        2000
+      )
+    );
     return layout;
 }
 //==============================================================================
