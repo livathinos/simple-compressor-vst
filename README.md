@@ -1,6 +1,6 @@
-# Single band audio compressor VST plugin
+# Multi-band audio compressor VST plugin
 
-A basic single band compressor for use as a VST plugin made with the JUCE framework.
+A basic multi-band compressor for use as a VST plugin made with the JUCE framework.
 
 ## Running and debugging
 
