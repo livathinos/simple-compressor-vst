@@ -269,7 +269,6 @@ void SimpleCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
     };
     
     auto soloBandEnabled = false;
-    
     for(size_t i = 0; i < compressors.size(); ++i)
     {
         auto& compressor = compressors[i];
@@ -323,11 +322,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleCompressorAudioProcess
     using namespace Params;
     const auto& params = GetParams();
     
+    auto thresholdRange = NormalisableRange<float>(-60, 12, 1, 1);
     layout.add(
       std::make_unique<AudioParameterFloat>(
         params.at(Names::Threshold_Low_Band),
         params.at(Names::Threshold_Low_Band),
-        NormalisableRange<float>(-60, 12, 1, 1),
+        thresholdRange,
         0
       )
     );
@@ -335,7 +335,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleCompressorAudioProcess
       std::make_unique<AudioParameterFloat>(
         params.at(Names::Threshold_Mid_Band),
         params.at(Names::Threshold_Mid_Band),
-        NormalisableRange<float>(-60, 12, 1, 1),
+        thresholdRange,
         0
       )
     );
@@ -343,13 +343,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleCompressorAudioProcess
       std::make_unique<AudioParameterFloat>(
         params.at(Names::Threshold_High_Band),
         params.at(Names::Threshold_High_Band),
-        NormalisableRange<float>(-60, 12, 1, 1),
+        thresholdRange,
         0
       )
     );
     
     auto attackReleaseRange = NormalisableRange<float>(5, 500, 1, 1);
-    
     layout.add(
       std::make_unique<AudioParameterFloat>(
         params.at(Names::Attack_Low_Band),
