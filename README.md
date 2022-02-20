@@ -27,8 +27,6 @@ if you are developing on MacOSX. If you are on a different environment, follow [
 After opening the project in XCode, select edit scheme and add the `AudioPluginHost.app` exectuable to be invoked when
 debugging a build. The executable is located under `testbed/MacOSX/AudioPluginHost.app`.
 
-![Edit scheme](docs/assets/audio-plugin-host-edit-1.png)
-
 ![Select the executable](docs/assets/audio-plugin-host-edit-2.png)
 
 
